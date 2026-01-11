@@ -14,14 +14,97 @@ if api_key:
         base_url="https://openrouter.ai/api/v1"
     )
 
-# ------------------ UI ------------------
-st.set_page_config(page_title="🌸 ManoSakhi 🌸", layout="centered")
-st.title("🌸 ManoSakhi – Mental Health Chatbot 🌸")
-st.markdown("A safe space to talk 🤍")
-st.caption("⚠️ Emotional support only. Not a medical professional.")
+# ------------------ Page Config ------------------
+st.set_page_config(
+    page_title="🌸 ManoSakhi 🌸",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+# ------------------ Responsive CSS ------------------
+st.markdown(
+    """
+    <style>
+    /* App Background */
+    .stApp {
+        background: linear-gradient(
+            rgba(255,255,255,0.92),
+            rgba(255,255,255,0.92)
+        ),
+        url("https://images.unsplash.com/photo-1527137342181-19aab11a8ee8");
+        background-size: cover;
+        background-attachment: fixed;
+    }
+
+    /* Header */
+    .header-card {
+        background: #ffffffee;
+        padding: 20px;
+        border-radius: 18px;
+        box-shadow: 0px 6px 15px rgba(0,0,0,0.15);
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    /* Chat bubbles */
+    .user-bubble, .bot-bubble {
+        padding: 12px 16px;
+        border-radius: 16px;
+        margin: 6px 0;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.12);
+        word-wrap: break-word;
+        font-size: 16px;
+        line-height: 1.4;
+    }
+
+    .user-bubble {
+        background: #DCF8C6;
+        margin-left: auto;
+        max-width: 80%;
+    }
+
+    .bot-bubble {
+        background: #F1F0F0;
+        margin-right: auto;
+        max-width: 80%;
+    }
+
+    /* Mobile optimization */
+    @media (max-width: 768px) {
+        .header-card {
+            padding: 14px;
+        }
+
+        .user-bubble, .bot-bubble {
+            font-size: 15px;
+            max-width: 95%;
+        }
+    }
+
+    /* Input box spacing */
+    input[type="text"] {
+        font-size: 16px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ------------------ Header ------------------
+st.markdown(
+    """
+    <div class="header-card">
+        <h2>🌸 ManoSakhi</h2>
+        <p><b>Mental Health Chatbot</b></p>
+        <p>A safe space to talk 🤍</p>
+        <small>⚠️ Emotional support only. Not medical advice.</small>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.info(
-    "🛡️ **Safety Note:** This chatbot provides emotional support and coping guidance only. "
+    "🛡️ This chatbot offers emotional support and coping guidance only. "
     "It does not replace professional mental health care."
 )
 
@@ -44,7 +127,7 @@ def grounding_exercise():
         "🫁 Breathe in slowly for 4 seconds…\n"
         "Hold for 2 seconds…\n"
         "Breathe out gently for 6 seconds.\n\n"
-        "Try to notice:\n"
+        "Notice:\n"
         "• 5 things you can see\n"
         "• 4 things you can feel\n"
         "• 3 things you can hear\n"
@@ -59,8 +142,8 @@ def local_support_response(text):
 
     if "sad" in text or "down" in text:
         return (
-            "I’m really sorry you’re feeling sad. That can feel very heavy.\n\n"
-            "Do you want to share what’s been causing this feeling?"
+            "I’m really sorry you’re feeling sad. That can feel heavy.\n\n"
+            "Do you want to share what’s been causing this?"
         )
 
     if "lonely" in text or "alone" in text:
@@ -71,34 +154,27 @@ def local_support_response(text):
 
     if "stress" in text or "overwhelmed" in text:
         return (
-            "It sounds like a lot has been piling up for you.\n\n"
-            "What’s been the most stressful part lately?"
-        )
-
-    if "tired" in text or "exhausted" in text:
-        return (
-            "Feeling emotionally drained can be really hard.\n\n"
-            "What’s been taking the most energy from you lately?"
+            "It sounds like a lot has been piling up.\n\n"
+            "What’s been the most stressful part?"
         )
 
     return (
-        "Thank you for sharing that with me.\n\n"
-        "I’m here to listen. Tell me more about what’s on your mind."
+        "Thank you for sharing.\n\n"
+        "I’m here to listen. Tell me more."
     )
 
 # ------------------ Chat Function ------------------
 def chat_with_ai(user_input):
 
-    # Crisis handling (NO AI)
+    # Crisis handling
     if crisis_check(user_input):
         return (
             "I’m really glad you told me this. I’m so sorry you’re feeling this much pain.\n\n"
-            "You don’t deserve to face this alone, and your life has value.\n\n"
-            "Please consider reaching out to someone right now who can support you.\n\n"
+            "You don’t deserve to face this alone. Your life has value.\n\n"
             "📞 **India Suicide Helpline:** 9152987821\n"
             "🌍 **Global:** https://findahelpline.com\n\n"
             f"{grounding_exercise()}\n\n"
-            "If you’re able to answer, are you safe right now?"
+            "If you can, are you safe right now?"
         )
 
     # Try OpenRouter
@@ -133,14 +209,13 @@ def chat_with_ai(user_input):
             except Exception:
                 continue
 
-    # Always-safe fallback
     return local_support_response(user_input)
 
 # ------------------ Input ------------------
 st.markdown("---")
 user_input = st.text_input(
     "✍️ Type your thoughts here (English only)",
-    placeholder="Example: I feel sad and tired today..."
+    placeholder="Example: I feel sad today..."
 )
 
 if st.button("Send ✉️") and user_input.strip():
@@ -148,9 +223,15 @@ if st.button("Send ✉️") and user_input.strip():
     st.session_state.chat_history.append(("user", user_input))
     st.session_state.chat_history.append(("bot", reply))
 
-# ------------------ Display Chat ------------------
+# ------------------ Chat Display ------------------
 for role, msg in st.session_state.chat_history:
     if role == "user":
-        st.markdown(f"🧑 **You:** {msg}")
+        st.markdown(
+            f"<div class='user-bubble'>🧑 <b>You</b><br>{msg}</div>",
+            unsafe_allow_html=True
+        )
     else:
-        st.markdown(f"🤖 **ManoSakhi:** {msg}")
+        st.markdown(
+            f"<div class='bot-bubble'>🤖 <b>ManoSakhi</b><br>{msg}</div>",
+            unsafe_allow_html=True
+        )
