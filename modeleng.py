@@ -29,26 +29,6 @@ st.info(
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-if "mood" not in st.session_state:
-    st.session_state.mood = 5
-
-# ------------------ Mood Slider ------------------
-st.markdown("### 🎚️ How are you feeling right now?")
-mood = st.slider(
-    "1 = Very bad, 10 = Very good",
-    min_value=1,
-    max_value=10,
-    value=st.session_state.mood
-)
-st.session_state.mood = mood
-
-if mood <= 3:
-    st.warning("💙 It looks like you're feeling low. I'm here with you.")
-elif mood <= 6:
-    st.info("🌤️ Thanks for sharing. Let's talk it out.")
-else:
-    st.success("🌈 Glad you're feeling okay. I'm here if you want to talk.")
-
 # ------------------ Crisis Check ------------------
 def crisis_check(text):
     keywords = [
@@ -77,13 +57,13 @@ def grounding_exercise():
 def local_support_response(text):
     text = text.lower()
 
-    if "sad" in text:
+    if "sad" in text or "down" in text:
         return (
             "I’m really sorry you’re feeling sad. That can feel very heavy.\n\n"
             "Do you want to share what’s been causing this feeling?"
         )
 
-    if "lonely" in text:
+    if "lonely" in text or "alone" in text:
         return (
             "Feeling lonely can hurt deeply.\n\n"
             "You’re not alone here. What’s been making you feel this way?"
@@ -93,6 +73,12 @@ def local_support_response(text):
         return (
             "It sounds like a lot has been piling up for you.\n\n"
             "What’s been the most stressful part lately?"
+        )
+
+    if "tired" in text or "exhausted" in text:
+        return (
+            "Feeling emotionally drained can be really hard.\n\n"
+            "What’s been taking the most energy from you lately?"
         )
 
     return (
@@ -135,13 +121,7 @@ def chat_with_ai(user_input):
                                 "Do not give medical advice."
                             )
                         },
-                        {
-                            "role": "user",
-                            "content": (
-                                f"My mood today is {st.session_state.mood}/10.\n"
-                                f"{user_input}"
-                            )
-                        }
+                        {"role": "user", "content": user_input}
                     ],
                     timeout=20
                 )
