@@ -21,71 +21,61 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ------------------ DARK THEME CSS ------------------
+# ------------------ DARK THEME + CHAT CSS ------------------
 st.markdown(
     """
     <style>
-    /* App background */
     .stApp {
         background-color: #0f0f0f;
-        color: #ffffff !important;
+        color: #ffffff;
     }
 
-    /* Force light text */
     h1, h2, h3, h4, h5, h6, p, span, label, small, div {
         color: #ffffff !important;
     }
 
-    /* Header card */
     .header-card {
         background: #1c1c1c;
         padding: 18px;
         border-radius: 16px;
-        box-shadow: 0px 4px 12px rgba(255,255,255,0.05);
         text-align: center;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
-    /* Info box */
-    .stAlert {
-        background-color: #1e3a5f !important;
-        color: #ffffff !important;
-        border-radius: 12px;
+    .chat-container {
+        max-height: 65vh;
+        overflow-y: auto;
+        padding-right: 6px;
     }
 
-    /* Chat bubbles */
     .user-bubble {
         background: #2e7d32;
-        color: #ffffff;
         padding: 12px 16px;
         border-radius: 14px;
-        margin: 8px 0;
+        margin: 6px 0;
         max-width: 85%;
         margin-left: auto;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.5);
+        word-wrap: break-word;
     }
 
     .bot-bubble {
         background: #1f1f1f;
-        color: #ffffff;
         padding: 12px 16px;
         border-radius: 14px;
-        margin: 8px 0;
+        margin: 6px 0;
         max-width: 85%;
         margin-right: auto;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.5);
+        word-wrap: break-word;
     }
 
-    /* Input box */
     input[type="text"] {
         background-color: #1c1c1c !important;
         color: #ffffff !important;
         border-radius: 10px;
-        border: 1px solid #555555;
+        border: 1px solid #555;
         font-size: 16px;
     }
 
-    /* Send button */
     div.stButton > button {
         background-color: #4CAF50 !important;
         color: white !important;
@@ -99,8 +89,10 @@ st.markdown(
         background-color: #43a047 !important;
     }
 
-    /* Mobile adjustments */
     @media (max-width: 768px) {
+        .chat-container {
+            max-height: 60vh;
+        }
         .user-bubble, .bot-bubble {
             max-width: 95%;
             font-size: 15px;
@@ -124,15 +116,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ------------------ Single Safety Message ------------------
+# ------------------ Safety Note (ONCE) ------------------
 st.info(
-    "🛡️ **Safety Note:** This chatbot provides emotional support and coping guidance only. "
+    "🛡️ This chatbot provides emotional support and coping guidance only. "
     "It does not replace professional mental health care."
 )
 
 # ------------------ Session State ------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
+if "last_bot_reply" not in st.session_state:
+    st.session_state.last_bot_reply = ""
 
 # ------------------ Crisis Check ------------------
 def crisis_check(text):
@@ -158,31 +153,32 @@ def grounding_exercise():
         "I’m here with you."
     )
 
-# ------------------ Local Fallback ------------------
+# ------------------ Local Fallback (Context-Aware) ------------------
 def local_support_response(text):
     text = text.lower()
+    last = st.session_state.last_bot_reply.lower()
+
+    if "sad" in text and "sorry" in last:
+        return (
+            "That makes sense, especially after what you shared earlier.\n\n"
+            "Do you want to talk about what’s been weighing on you the most?"
+        )
+
+    if "exam" in text:
+        return (
+            "Bad exams can really affect confidence and mood.\n\n"
+            "Was it the preparation, time pressure, or questions that felt hardest?"
+        )
 
     if "sad" in text:
         return (
-            "I’m really sorry you’re feeling sad. That can feel very heavy.\n\n"
-            "Do you want to share what’s been causing this?"
-        )
-
-    if "lonely" in text:
-        return (
-            "Feeling lonely can hurt deeply.\n\n"
-            "You’re not alone here. What’s been making you feel this way?"
-        )
-
-    if "stress" in text or "overwhelmed" in text:
-        return (
-            "It sounds like a lot has been piling up.\n\n"
-            "What’s been the most stressful part?"
+            "I’m really sorry you’re feeling sad. That can feel heavy.\n\n"
+            "What do you think is contributing most to this feeling?"
         )
 
     return (
-        "Thank you for sharing.\n\n"
-        "I’m here to listen. Tell me more."
+        "I’m here with you.\n\n"
+        "Tell me more about what’s been going on."
     )
 
 # ------------------ Chat Function ------------------
@@ -192,21 +188,19 @@ def chat_with_ai(user_input):
     if crisis_check(user_input):
         return (
             "I’m really glad you told me this. I’m so sorry you’re feeling this much pain.\n\n"
-            "You don’t deserve to face this alone, and your life has value.\n\n"
-            "📞 **India Suicide Helpline:** 9152987821\n"
-            "🌍 **Global:** https://findahelpline.com\n\n"
+            "You don’t deserve to face this alone. Your life has value.\n\n"
+            "📞 India Suicide Helpline: 9152987821\n"
+            "🌍 Global: https://findahelpline.com\n\n"
             f"{grounding_exercise()}\n\n"
             "If you can, are you safe right now?"
         )
 
     # Try OpenRouter
     if client:
-        models = [
+        for model in [
             "mistralai/mistral-7b-instruct:free",
             "openchat/openchat-7b:free"
-        ]
-
-        for model in models:
+        ]:
             try:
                 response = client.chat.completions.create(
                     model=model,
@@ -225,7 +219,7 @@ def chat_with_ai(user_input):
                 )
 
                 reply = response.choices[0].message.content
-                if reply and reply.strip():
+                if reply:
                     return reply.strip()
 
             except Exception:
@@ -233,21 +227,9 @@ def chat_with_ai(user_input):
 
     return local_support_response(user_input)
 
-# ------------------ Input ------------------
-st.markdown("---")
-user_input = st.text_input(
-    "✍️ Type your thoughts here (English only)",
-    placeholder="Example: I feel sad today..."
-)
+# ------------------ CHAT DISPLAY (TOP) ------------------
+st.markdown("<div class='chat-container' id='chat'>", unsafe_allow_html=True)
 
-send = st.button("Send ✉️")
-
-if send and user_input.strip():
-    reply = chat_with_ai(user_input)
-    st.session_state.chat_history.append(("user", user_input))
-    st.session_state.chat_history.append(("bot", reply))
-
-# ------------------ Display Chat ------------------
 for role, msg in st.session_state.chat_history:
     if role == "user":
         st.markdown(
@@ -259,3 +241,35 @@ for role, msg in st.session_state.chat_history:
             f"<div class='bot-bubble'>🤖 <b>ManoSakhi</b><br>{msg}</div>",
             unsafe_allow_html=True
         )
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ------------------ AUTO SCROLL ------------------
+st.markdown(
+    """
+    <script>
+    const chat = document.getElementById("chat");
+    if (chat) {
+        chat.scrollTop = chat.scrollHeight;
+    }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# ------------------ INPUT (BOTTOM) ------------------
+st.markdown("---")
+
+user_input = st.text_input(
+    "✍️ Type your thoughts here (English only)",
+    placeholder="Example: I feel sad today..."
+)
+
+send = st.button("Send ✉️")
+
+if send and user_input.strip():
+    reply = chat_with_ai(user_input)
+    st.session_state.chat_history.append(("user", user_input))
+    st.session_state.chat_history.append(("bot", reply))
+    st.session_state.last_bot_reply = reply
+    st.rerun()
