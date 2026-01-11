@@ -1,9 +1,2 @@
 streamlit
-google-genai
-python-dotenv
-gTTS
-google-generativeai
-gtts
-google-cloud-texttospeech
 huggingface_hub
-openai

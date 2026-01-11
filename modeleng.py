@@ -1,30 +1,25 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
 import os
 
-# ------------------ Load API Key ------------------
-load_dotenv()
+# ------------------ API KEY ------------------
 api_key = os.getenv("HUGGINGFACE_API_KEY")
 
 if not api_key:
-    st.error("HUGGINGFACE_API_KEY not found in .env file")
+    st.error("HUGGINGFACE_API_KEY missing in Streamlit secrets")
     st.stop()
 
-# ------------------ Hugging Face Client ------------------
+# ------------------ HF Client ------------------
 client = InferenceClient(
-    model="OpenAssistant/oasst-sft-4-pythia-12b",
+    model="google/flan-t5-large",
     token=api_key
 )
 
 # ------------------ UI ------------------
 st.set_page_config(page_title="🌸 ManoSakhi 🌸")
 st.title("🌸 ManoSakhi – Mental Health Chatbot 🌸")
-st.subheader("A safe space to talk 🤍")
-
-st.markdown(
-    "⚠️ *This chatbot provides emotional support only and is not a medical professional.*"
-)
+st.markdown("A safe space to talk 🤍")
+st.caption("⚠️ This chatbot provides emotional support only.")
 
 # ------------------ Session ------------------
 if "chat_history" not in st.session_state:
@@ -32,52 +27,60 @@ if "chat_history" not in st.session_state:
 
 # ------------------ Crisis Check ------------------
 def crisis_check(text):
-    keywords = [
+    words = [
         "suicide", "kill myself", "end my life",
         "self harm", "cut myself", "die"
     ]
-    return any(k in text.lower() for k in keywords)
+    return any(w in text.lower() for w in words)
 
 # ------------------ Chat Function ------------------
 def chat_with_ai(user_input):
 
-    # Crisis response (NO API call)
+    # Crisis message (no API)
     if crisis_check(user_input):
         return (
-            "I'm really glad you reached out. What you're feeling matters.\n\n"
-            "Please consider speaking to a trusted person or professional right now.\n\n"
-            "📞 **India Helpline:** 9152987821\n"
-            "🌍 **Global:** https://findahelpline.com\n\n"
-            "You are not alone."
+            "I'm really glad you reached out. You matter.\n\n"
+            "If you’re feeling unsafe, please reach out to a trusted person or a helpline immediately.\n\n"
+            "📞 India: 9152987821\n"
+            "🌍 Global: https://findahelpline.com"
         )
 
     prompt = (
         "You are a kind, empathetic mental health support chatbot.\n"
-        "Respond only in simple, supportive English.\n"
+        "Respond in simple, supportive English.\n"
         "Do not give medical advice.\n\n"
-        f"User: {user_input}\n"
-        "Assistant:"
+        f"User says: {user_input}\n"
+        "Your response:"
     )
 
     try:
         response = client.text_generation(
             prompt,
-            max_new_tokens=150,
-            temperature=0.7,
+            max_new_tokens=120,
+            temperature=0.6,
             top_p=0.9
         )
-        return response.strip()
+
+        if response and response.strip():
+            return response.strip()
+
+        # Empty response fallback
+        return (
+            "I'm really sorry you're feeling this way. "
+            "Would you like to talk about what has been weighing on you?"
+        )
 
     except Exception:
+        # API failure fallback (VERY IMPORTANT)
         return (
-            "I'm here with you, but I'm having trouble responding right now. "
-            "Please try again in a moment."
+            "I'm here with you. Sometimes things feel heavy, and it's okay to talk about them.\n"
+            "What’s been making today difficult for you?"
         )
 
 # ------------------ Input ------------------
 user_input = st.text_input(
     "✍️ Type your thoughts here (English only)",
-    placeholder="Example: I feel overwhelmed today..."
+    placeholder="Example: I feel sad and tired today..."
 )
 
 if st.button("Send ✉️") and user_input.strip():
