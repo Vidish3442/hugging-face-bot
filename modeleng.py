@@ -1,25 +1,25 @@
 import streamlit as st
-from huggingface_hub import InferenceClient
+from openai import OpenAI
+from dotenv import load_dotenv
 import os
 
-# ------------------ API KEY ------------------
-api_key = os.getenv("HUGGINGFACE_API_KEY")
+# ------------------ Load API Key ------------------
+load_dotenv()
+api_key = os.getenv("OPENROUTER_API_KEY")
 
-if not api_key:
-    st.error("HUGGINGFACE_API_KEY missing in Streamlit secrets")
-    st.stop()
-
-# ------------------ HF Client ------------------
-client = InferenceClient(
-    model="google/flan-t5-large",
-    token=api_key
-)
+# OpenRouter client (OpenAI-compatible)
+client = None
+if api_key:
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1"
+    )
 
 # ------------------ UI ------------------
 st.set_page_config(page_title="🌸 ManoSakhi 🌸")
 st.title("🌸 ManoSakhi – Mental Health Chatbot 🌸")
 st.markdown("A safe space to talk 🤍")
-st.caption("⚠️ This chatbot provides emotional support only.")
+st.caption("⚠️ Emotional support only. Not medical advice.")
 
 # ------------------ Session ------------------
 if "chat_history" not in st.session_state:
@@ -33,54 +33,84 @@ def crisis_check(text):
     ]
     return any(w in text.lower() for w in words)
 
+# ------------------ Local Fallback ------------------
+def local_support_response(text):
+    text = text.lower()
+
+    if "sad" in text or "down" in text:
+        return (
+            "I'm really sorry you're feeling sad. That can feel heavy.\n\n"
+            "Would you like to share what’s been making you feel this way?"
+        )
+
+    if "lonely" in text or "alone" in text:
+        return (
+            "Feeling lonely can be very painful.\n\n"
+            "You’re not alone here. What’s been making you feel this way?"
+        )
+
+    if "stress" in text or "overwhelmed" in text:
+        return (
+            "It sounds like things have been overwhelming for you.\n\n"
+            "What’s been causing the most stress lately?"
+        )
+
+    return (
+        "I'm here with you and I'm listening.\n\n"
+        "Tell me more about what’s been on your mind."
+    )
+
 # ------------------ Chat Function ------------------
 def chat_with_ai(user_input):
 
-    # Crisis message (no API)
+    # Crisis handling (no API)
     if crisis_check(user_input):
         return (
             "I'm really glad you reached out. You matter.\n\n"
-            "If you’re feeling unsafe, please reach out to a trusted person or a helpline immediately.\n\n"
+            "If you’re feeling unsafe, please talk to someone right now.\n\n"
             "📞 India: 9152987821\n"
             "🌍 Global: https://findahelpline.com"
         )
 
-    prompt = (
-        "You are a kind, empathetic mental health support chatbot.\n"
-        "Respond in simple, supportive English.\n"
-        "Do not give medical advice.\n\n"
-        f"User says: {user_input}\n"
-        "Your response:"
-    )
+    # Try OpenRouter first
+    if client:
+        models = [
+            "mistralai/mistral-7b-instruct:free",
+            "openchat/openchat-7b:free"
+        ]
 
-    try:
-        response = client.text_generation(
-            prompt,
-            max_new_tokens=120,
-            temperature=0.6,
-            top_p=0.9
-        )
+        for model in models:
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a kind, empathetic mental health support chatbot. "
+                                "Respond in simple, supportive English. "
+                                "Do not give medical advice."
+                            )
+                        },
+                        {"role": "user", "content": user_input}
+                    ],
+                    timeout=20
+                )
 
-        if response and response.strip():
-            return response.strip()
+                reply = response.choices[0].message.content
+                if reply and reply.strip():
+                    return reply.strip()
 
-        # Empty response fallback
-        return (
-            "I'm really sorry you're feeling this way. "
-            "Would you like to talk about what has been weighing on you?"
-        )
+            except Exception:
+                continue  # try next model
 
-    except Exception:
-        # API failure fallback (VERY IMPORTANT)
-        return (
-            "I'm here with you. Sometimes things feel heavy, and it's okay to talk about them.\n"
-            "What’s been making today difficult for you?"
-        )
+    # Always-safe local response
+    return local_support_response(user_input)
 
 # ------------------ Input ------------------
 user_input = st.text_input(
     "✍️ Type your thoughts here (English only)",
-    placeholder="Example: I feel sad and tired today..."
+    placeholder="Example: I feel sad today..."
 )
 
 if st.button("Send ✉️") and user_input.strip():
