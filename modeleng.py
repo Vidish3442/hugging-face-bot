@@ -21,72 +21,82 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ------------------ FIXED CSS (HIGH CONTRAST) ------------------
+# ------------------ DARK THEME CSS ------------------
 st.markdown(
     """
     <style>
-    /* Background */
+    /* App background */
     .stApp {
-        background: 
-        linear-gradient(rgba(245,247,250,0.95), rgba(245,247,250,0.95)),
-        url("https://images.unsplash.com/photo-1527137342181-19aab11a8ee8");
-        background-size: cover;
-        background-attachment: fixed;
-        color: #111111 !important;
+        background-color: #0f0f0f;
+        color: #ffffff !important;
     }
 
-    /* Force text color everywhere */
+    /* Force light text */
     h1, h2, h3, h4, h5, h6, p, span, label, small, div {
-        color: #111111 !important;
+        color: #ffffff !important;
     }
 
     /* Header card */
     .header-card {
-        background: #ffffff;
+        background: #1c1c1c;
         padding: 18px;
         border-radius: 16px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0px 4px 12px rgba(255,255,255,0.05);
         text-align: center;
         margin-bottom: 16px;
     }
 
-    /* Info box fix */
+    /* Info box */
     .stAlert {
-        background-color: #e8f0fe !important;
-        color: #0b1f44 !important;
+        background-color: #1e3a5f !important;
+        color: #ffffff !important;
         border-radius: 12px;
     }
 
     /* Chat bubbles */
     .user-bubble {
-        background: #c7efcf;
-        color: #000000;
+        background: #2e7d32;
+        color: #ffffff;
         padding: 12px 16px;
         border-radius: 14px;
         margin: 8px 0;
         max-width: 85%;
         margin-left: auto;
-        box-shadow: 0px 2px 5px rgba(0,0,0,0.12);
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.5);
     }
 
     .bot-bubble {
-        background: #ffffff;
-        color: #000000;
+        background: #1f1f1f;
+        color: #ffffff;
         padding: 12px 16px;
         border-radius: 14px;
         margin: 8px 0;
         max-width: 85%;
         margin-right: auto;
-        box-shadow: 0px 2px 5px rgba(0,0,0,0.12);
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.5);
     }
 
     /* Input box */
     input[type="text"] {
-        background-color: #ffffff !important;
-        color: #000000 !important;
+        background-color: #1c1c1c !important;
+        color: #ffffff !important;
         border-radius: 10px;
-        border: 1px solid #cccccc;
+        border: 1px solid #555555;
         font-size: 16px;
+    }
+
+    /* Send button */
+    div.stButton > button {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        padding: 0.6em 1.2em;
+        border-radius: 10px;
+        font-size: 16px;
+        border: none;
+    }
+
+    div.stButton > button:hover {
+        background-color: #43a047 !important;
     }
 
     /* Mobile adjustments */
@@ -108,14 +118,15 @@ st.markdown(
         <h2>🌸 ManoSakhi</h2>
         <p><b>Mental Health Chatbot</b></p>
         <p>A safe space to talk 🤍</p>
-        <small>⚠️ Emotional support only. Not medical advice.</small>
+        <small>Emotional support only. Not medical advice.</small>
     </div>
     """,
     unsafe_allow_html=True
 )
 
+# ------------------ Single Safety Message ------------------
 st.info(
-    "🛡️ This chatbot offers emotional support and coping guidance only. "
+    "🛡️ **Safety Note:** This chatbot provides emotional support and coping guidance only. "
     "It does not replace professional mental health care."
 )
 
@@ -177,16 +188,18 @@ def local_support_response(text):
 # ------------------ Chat Function ------------------
 def chat_with_ai(user_input):
 
+    # Crisis handling
     if crisis_check(user_input):
         return (
             "I’m really glad you told me this. I’m so sorry you’re feeling this much pain.\n\n"
-            "You don’t deserve to face this alone. Your life has value.\n\n"
-            "📞 India Suicide Helpline: 9152987821\n"
-            "🌍 Global: https://findahelpline.com\n\n"
+            "You don’t deserve to face this alone, and your life has value.\n\n"
+            "📞 **India Suicide Helpline:** 9152987821\n"
+            "🌍 **Global:** https://findahelpline.com\n\n"
             f"{grounding_exercise()}\n\n"
             "If you can, are you safe right now?"
         )
 
+    # Try OpenRouter
     if client:
         models = [
             "mistralai/mistral-7b-instruct:free",
@@ -227,7 +240,9 @@ user_input = st.text_input(
     placeholder="Example: I feel sad today..."
 )
 
-if st.button("Send ✉️") and user_input.strip():
+send = st.button("Send ✉️")
+
+if send and user_input.strip():
     reply = chat_with_ai(user_input)
     st.session_state.chat_history.append(("user", user_input))
     st.session_state.chat_history.append(("bot", reply))
