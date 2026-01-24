@@ -1,31 +1,73 @@
-# -------------------- Python --------------------
+# ==================== Python ====================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
 *.log
+*.sqlite3
 
-# -------------------- Virtual Environment --------------------
+# ==================== Virtual Environment ====================
 venv/
 env/
 .venv/
+.env/
+ENV/
+env.bak/
+venv.bak/
 
-# -------------------- Environment Variables --------------------
+# ==================== Environment Variables ====================
 .env
+.env.local
+.env.production
+.env.staging
 
-# -------------------- Streamlit --------------------
+# ==================== Streamlit ====================
 .streamlit/
 *.mp3
+*.wav
+*.mp4
 
-# -------------------- OS Files --------------------
+# ==================== IDE & Editors ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# -------------------- IDE --------------------
-.vscode/
-.idea/
-
-# -------------------- Temp Files --------------------
+# ==================== Logs & Temp Files ====================
+*.log
 *.tmp
 *.temp
-.gitignore
+logs/
+temp/
+
+# ==================== OS Files ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==================== Project Specific ====================
+# Chat history backups
+chat_backups/
+user_data/
+session_logs/
+
+# Model cache
+model_cache/
+.cache/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
