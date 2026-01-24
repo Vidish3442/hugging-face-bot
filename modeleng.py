@@ -3,7 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
-# ================== LOAD API KEY ==================
+# ================= LOAD API KEY =================
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
@@ -14,13 +14,13 @@ if api_key:
         base_url="https://openrouter.ai/api/v1"
     )
 
-# ================== PAGE CONFIG ==================
+# ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="🌸 ManoSakhi",
     layout="centered"
 )
 
-# ================== STYLES ==================
+# ================= UI STYLE =================
 st.markdown("""
 <style>
 .stApp { background-color: #0f0f0f; color: white; }
@@ -29,10 +29,11 @@ st.markdown("""
     padding: 18px;
     border-radius: 16px;
     text-align: center;
+    margin-bottom: 10px;
 }
 .user-bubble {
     background: #2e7d32;
-    padding: 12px;
+    padding: 12px 16px;
     border-radius: 14px;
     margin: 6px 0;
     max-width: 85%;
@@ -40,7 +41,7 @@ st.markdown("""
 }
 .bot-bubble {
     background: #1f1f1f;
-    padding: 12px;
+    padding: 12px 16px;
     border-radius: 14px;
     margin: 6px 0;
     max-width: 85%;
@@ -48,7 +49,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================== HEADER ==================
+# ================= HEADER =================
 st.markdown("""
 <div class="header-card">
 <h2>🌸 ManoSakhi</h2>
@@ -60,34 +61,35 @@ st.markdown("""
 
 st.info("🛡️ Emotional support only. Not a replacement for professional help.")
 
-# ================== SESSION STATE ==================
+# ================= SESSION STATE =================
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "last_bot_reply" not in st.session_state:
     st.session_state.last_bot_reply = ""
 
-if "emotion" not in st.session_state:
-    st.session_state.emotion = "neutral"
+# ================= MODEL PRIORITY =================
+MODELS = [
+    "openchat/openchat-7b:free",
+    "mistralai/mistral-7b-instruct:free"
+]
 
-# ================== EMOTION DETECTION ==================
-def detect_emotion(text):
-    text = text.lower()
+# ================= SYSTEM PROMPT =================
+SYSTEM_PROMPT = """
+You are ManoSakhi, a compassionate mental health support chatbot.
 
-    if any(w in text for w in ["sad", "down", "cry", "hurt"]):
-        return "sad"
-    if any(w in text for w in ["angry", "mad", "fight", "argue"]):
-        return "angry"
-    if any(w in text for w in ["lonely", "alone", "ignored"]):
-        return "lonely"
-    if any(w in text for w in ["stress", "pressure", "exam", "anxious"]):
-        return "anxious"
-    if any(w in text for w in ["happy", "good", "better"]):
-        return "positive"
+Rules:
+- Respond with empathy, warmth, and seriousness.
+- If the user mentions physical violence, being beaten, or harm by others, acknowledge it clearly.
+- Do NOT minimize or ignore violence.
+- Avoid repeating the same question.
+- Ask gentle, open-ended follow-up questions.
+- Offer emotional support and grounding suggestions when appropriate.
+- Do NOT give medical or legal advice.
+- Use simple, calm, human language.
+"""
 
-    return "neutral"
-
-# ================== CRISIS CHECK ==================
+# ================= CRISIS CHECK =================
 def crisis_check(text):
     keywords = [
         "suicide", "kill myself", "end my life",
@@ -95,110 +97,82 @@ def crisis_check(text):
     ]
     return any(k in text.lower() for k in keywords)
 
-# ================== GROUNDING ==================
+# ================= GROUNDING =================
 def grounding_exercise():
     return (
-        "Let’s slow down together for a moment 🤍\n\n"
-        "🫁 Breathe in for 4 seconds…\n"
+        "Let’s pause together for a moment 🤍\n\n"
+        "🫁 Breathe in slowly for 4 seconds…\n"
         "Hold for 2 seconds…\n"
-        "Breathe out slowly for 6 seconds.\n\n"
-        "Look around and notice:\n"
-        "• 5 things you see\n"
-        "• 4 things you feel\n"
-        "• 3 things you hear\n\n"
-        "I’m right here with you."
+        "Breathe out gently for 6 seconds.\n\n"
+        "You’re not alone right now."
     )
 
-# ================== LOCAL SUPPORT ==================
-def local_support_response(text, emotion):
-    if emotion == "sad":
-        return (
-            "I’m really sorry you’re feeling this way. Sadness can feel heavy.\n\n"
-            "What’s the part that hurts the most right now?"
-        )
-    if emotion == "angry":
-        return (
-            "It sounds like there’s a lot of emotion after what happened.\n\n"
-            "Do you feel more angry, or more hurt by the situation?"
-        )
-    if emotion == "lonely":
-        return (
-            "Feeling lonely can be very painful.\n\n"
-            "When did you start feeling this way?"
-        )
-    if emotion == "anxious":
-        return (
-            "That sounds stressful.\n\n"
-            "Is your mind racing, or does your body feel tense right now?"
-        )
-
-    return "I’m listening. Tell me more when you’re ready."
-
-# ================== CHAT FUNCTION ==================
+# ================= CHAT FUNCTION =================
 def chat_with_ai(user_input):
 
-    # Crisis handling
+    # Self-harm crisis handling ONLY
     if crisis_check(user_input):
         return (
-            "I’m really glad you shared this with me.\n\n"
+            "I’m really glad you told me this.\n\n"
             "You don’t have to face this alone.\n\n"
             "📞 India Suicide Helpline: 9152987821\n"
             "🌍 Global Help: https://findahelpline.com\n\n"
             f"{grounding_exercise()}"
         )
 
-    # Emotion detection
-    emotion = detect_emotion(user_input)
-    st.session_state.emotion = emotion
+    # Build conversation context
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    # AI RESPONSE
+    for role, msg in st.session_state.chat_history[-8:]:
+        messages.append({
+            "role": "assistant" if role == "bot" else "user",
+            "content": msg
+        })
+
+    messages.append({"role": "user", "content": user_input})
+
+    # Try models in order
     if client:
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are ManoSakhi, an empathetic emotional support chatbot. "
-                    "Acknowledge emotions clearly. Avoid repeating questions. "
-                    "Give gentle, specific responses. No medical advice."
+        for model in MODELS:
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    timeout=20
                 )
-            }
-        ]
 
-        for role, msg in st.session_state.chat_history[-6:]:
-            messages.append({
-                "role": "assistant" if role == "bot" else "user",
-                "content": msg
-            })
+                reply = response.choices[0].message.content.strip()
 
-        messages.append({"role": "user", "content": user_input})
+                # Prevent repetition
+                if reply == st.session_state.last_bot_reply:
+                    reply += "\n\nI’m here with you. Take your time."
 
-        try:
-            response = client.chat.completions.create(
-                model="mistralai/mistral-7b-instruct:free",
-                messages=messages,
-                timeout=20
-            )
+                return reply
 
-            reply = response.choices[0].message.content.strip()
+            except Exception:
+                continue
 
-            if reply == st.session_state.last_bot_reply:
-                reply += "\n\nI’m here with you."
+    # Emergency fallback (rare)
+    return (
+        "I’m really sorry you’re going through this.\n\n"
+        "What you shared sounds painful, and I’m here to listen."
+    )
 
-            return reply
-
-        except Exception:
-            pass
-
-    return local_support_response(user_input, emotion)
-
-# ================== CHAT DISPLAY ==================
+# ================= CHAT DISPLAY =================
 for role, msg in st.session_state.chat_history:
     if role == "user":
-        st.markdown(f"<div class='user-bubble'>🧑 You<br>{msg}</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='user-bubble'>🧑 <b>You</b><br>{msg}</div>",
+            unsafe_allow_html=True
+        )
     else:
-        st.markdown(f"<div class='bot-bubble'>🤖 ManoSakhi<br>{msg}</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='bot-bubble'>🤖 <b>ManoSakhi</b><br>{msg}</div>",
+            unsafe_allow_html=True
+        )
 
-# ================== INPUT ==================
+# ================= INPUT =================
+st.markdown("---")
 user_input = st.text_input("✍️ Type your thoughts here (English only)")
 send = st.button("Send ✉️")
 
