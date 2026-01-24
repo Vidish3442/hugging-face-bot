@@ -28,3 +28,4 @@ Thumbs.db
 # -------------------- Temp Files --------------------
 *.tmp
 *.temp
+.gitignore

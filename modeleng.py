@@ -3,7 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
-# ------------------ Load API Key ------------------
+# ================== LOAD API KEY ==================
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
@@ -14,122 +14,80 @@ if api_key:
         base_url="https://openrouter.ai/api/v1"
     )
 
-# ------------------ Page Config ------------------
+# ================== PAGE CONFIG ==================
 st.set_page_config(
-    page_title="🌸 ManoSakhi 🌸",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    page_title="🌸 ManoSakhi",
+    layout="centered"
 )
 
-# ------------------ DARK THEME + CHAT CSS ------------------
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #0f0f0f;
-        color: #ffffff;
-    }
+# ================== STYLES ==================
+st.markdown("""
+<style>
+.stApp { background-color: #0f0f0f; color: white; }
+.header-card {
+    background: #1c1c1c;
+    padding: 18px;
+    border-radius: 16px;
+    text-align: center;
+}
+.user-bubble {
+    background: #2e7d32;
+    padding: 12px;
+    border-radius: 14px;
+    margin: 6px 0;
+    max-width: 85%;
+    margin-left: auto;
+}
+.bot-bubble {
+    background: #1f1f1f;
+    padding: 12px;
+    border-radius: 14px;
+    margin: 6px 0;
+    max-width: 85%;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    h1, h2, h3, h4, h5, h6, p, span, label, small, div {
-        color: #ffffff !important;
-    }
+# ================== HEADER ==================
+st.markdown("""
+<div class="header-card">
+<h2>🌸 ManoSakhi</h2>
+<p><b>Mental Health Chatbot</b></p>
+<p>A safe space to talk 🤍</p>
+<small>Emotional support only. Not medical advice.</small>
+</div>
+""", unsafe_allow_html=True)
 
-    .header-card {
-        background: #1c1c1c;
-        padding: 18px;
-        border-radius: 16px;
-        text-align: center;
-        margin-bottom: 12px;
-    }
+st.info("🛡️ Emotional support only. Not a replacement for professional help.")
 
-    .chat-container {
-        max-height: 65vh;
-        overflow-y: auto;
-        padding-right: 6px;
-    }
-
-    .user-bubble {
-        background: #2e7d32;
-        padding: 12px 16px;
-        border-radius: 14px;
-        margin: 6px 0;
-        max-width: 85%;
-        margin-left: auto;
-        word-wrap: break-word;
-    }
-
-    .bot-bubble {
-        background: #1f1f1f;
-        padding: 12px 16px;
-        border-radius: 14px;
-        margin: 6px 0;
-        max-width: 85%;
-        margin-right: auto;
-        word-wrap: break-word;
-    }
-
-    input[type="text"] {
-        background-color: #1c1c1c !important;
-        color: #ffffff !important;
-        border-radius: 10px;
-        border: 1px solid #555;
-        font-size: 16px;
-    }
-
-    div.stButton > button {
-        background-color: #4CAF50 !important;
-        color: white !important;
-        padding: 0.6em 1.2em;
-        border-radius: 10px;
-        font-size: 16px;
-        border: none;
-    }
-
-    div.stButton > button:hover {
-        background-color: #43a047 !important;
-    }
-
-    @media (max-width: 768px) {
-        .chat-container {
-            max-height: 60vh;
-        }
-        .user-bubble, .bot-bubble {
-            max-width: 95%;
-            font-size: 15px;
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ------------------ Header ------------------
-st.markdown(
-    """
-    <div class="header-card">
-        <h2>🌸 ManoSakhi</h2>
-        <p><b>Mental Health Chatbot</b></p>
-        <p>A safe space to talk 🤍</p>
-        <small>Emotional support only. Not medical advice.</small>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# ------------------ Safety Note (ONCE) ------------------
-st.info(
-    "🛡️ This chatbot provides emotional support and coping guidance only. "
-    "It does not replace professional mental health care."
-)
-
-# ------------------ Session State ------------------
+# ================== SESSION STATE ==================
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "last_bot_reply" not in st.session_state:
     st.session_state.last_bot_reply = ""
 
-# ------------------ Crisis Check ------------------
+if "emotion" not in st.session_state:
+    st.session_state.emotion = "neutral"
+
+# ================== EMOTION DETECTION ==================
+def detect_emotion(text):
+    text = text.lower()
+
+    if any(w in text for w in ["sad", "down", "cry", "hurt"]):
+        return "sad"
+    if any(w in text for w in ["angry", "mad", "fight", "argue"]):
+        return "angry"
+    if any(w in text for w in ["lonely", "alone", "ignored"]):
+        return "lonely"
+    if any(w in text for w in ["stress", "pressure", "exam", "anxious"]):
+        return "anxious"
+    if any(w in text for w in ["happy", "good", "better"]):
+        return "positive"
+
+    return "neutral"
+
+# ================== CRISIS CHECK ==================
 def crisis_check(text):
     keywords = [
         "suicide", "kill myself", "end my life",
@@ -137,139 +95,118 @@ def crisis_check(text):
     ]
     return any(k in text.lower() for k in keywords)
 
-# ------------------ Grounding Exercise ------------------
+# ================== GROUNDING ==================
 def grounding_exercise():
     return (
-        "Let’s pause together for a moment.\n\n"
-        "🫁 Breathe in slowly for 4 seconds…\n"
+        "Let’s slow down together for a moment 🤍\n\n"
+        "🫁 Breathe in for 4 seconds…\n"
         "Hold for 2 seconds…\n"
-        "Breathe out gently for 6 seconds.\n\n"
-        "Notice:\n"
-        "• 5 things you can see\n"
-        "• 4 things you can feel\n"
-        "• 3 things you can hear\n"
-        "• 2 things you can smell\n"
-        "• 1 thing you can taste\n\n"
-        "I’m here with you."
+        "Breathe out slowly for 6 seconds.\n\n"
+        "Look around and notice:\n"
+        "• 5 things you see\n"
+        "• 4 things you feel\n"
+        "• 3 things you hear\n\n"
+        "I’m right here with you."
     )
 
-# ------------------ Local Fallback (Context-Aware) ------------------
-def local_support_response(text):
-    text = text.lower()
-    last = st.session_state.last_bot_reply.lower()
-
-    if "sad" in text and "sorry" in last:
+# ================== LOCAL SUPPORT ==================
+def local_support_response(text, emotion):
+    if emotion == "sad":
         return (
-            "That makes sense, especially after what you shared earlier.\n\n"
-            "Do you want to talk about what’s been weighing on you the most?"
+            "I’m really sorry you’re feeling this way. Sadness can feel heavy.\n\n"
+            "What’s the part that hurts the most right now?"
+        )
+    if emotion == "angry":
+        return (
+            "It sounds like there’s a lot of emotion after what happened.\n\n"
+            "Do you feel more angry, or more hurt by the situation?"
+        )
+    if emotion == "lonely":
+        return (
+            "Feeling lonely can be very painful.\n\n"
+            "When did you start feeling this way?"
+        )
+    if emotion == "anxious":
+        return (
+            "That sounds stressful.\n\n"
+            "Is your mind racing, or does your body feel tense right now?"
         )
 
-    if "exam" in text:
-        return (
-            "Bad exams can really affect confidence and mood.\n\n"
-            "Was it the preparation, time pressure, or questions that felt hardest?"
-        )
+    return "I’m listening. Tell me more when you’re ready."
 
-    if "sad" in text:
-        return (
-            "I’m really sorry you’re feeling sad. That can feel heavy.\n\n"
-            "What do you think is contributing most to this feeling?"
-        )
-
-    return (
-        "I’m here with you.\n\n"
-        "Tell me more about what’s been going on."
-    )
-
-# ------------------ Chat Function ------------------
+# ================== CHAT FUNCTION ==================
 def chat_with_ai(user_input):
 
     # Crisis handling
     if crisis_check(user_input):
         return (
-            "I’m really glad you told me this. I’m so sorry you’re feeling this much pain.\n\n"
-            "You don’t deserve to face this alone. Your life has value.\n\n"
+            "I’m really glad you shared this with me.\n\n"
+            "You don’t have to face this alone.\n\n"
             "📞 India Suicide Helpline: 9152987821\n"
-            "🌍 Global: https://findahelpline.com\n\n"
-            f"{grounding_exercise()}\n\n"
-            "If you can, are you safe right now?"
+            "🌍 Global Help: https://findahelpline.com\n\n"
+            f"{grounding_exercise()}"
         )
 
-    # Try OpenRouter
+    # Emotion detection
+    emotion = detect_emotion(user_input)
+    st.session_state.emotion = emotion
+
+    # AI RESPONSE
     if client:
-        for model in [
-            "mistralai/mistral-7b-instruct:free",
-            "openchat/openchat-7b:free"
-        ]:
-            try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are a kind, empathetic mental health support chatbot. "
-                                "Respond in simple, supportive English. "
-                                "Do not give medical advice."
-                            )
-                        },
-                        {"role": "user", "content": user_input}
-                    ],
-                    timeout=20
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are ManoSakhi, an empathetic emotional support chatbot. "
+                    "Acknowledge emotions clearly. Avoid repeating questions. "
+                    "Give gentle, specific responses. No medical advice."
                 )
+            }
+        ]
 
-                reply = response.choices[0].message.content
-                if reply:
-                    return reply.strip()
+        for role, msg in st.session_state.chat_history[-6:]:
+            messages.append({
+                "role": "assistant" if role == "bot" else "user",
+                "content": msg
+            })
 
-            except Exception:
-                continue
+        messages.append({"role": "user", "content": user_input})
 
-    return local_support_response(user_input)
+        try:
+            response = client.chat.completions.create(
+                model="mistralai/mistral-7b-instruct:free",
+                messages=messages,
+                timeout=20
+            )
 
-# ------------------ CHAT DISPLAY (TOP) ------------------
-st.markdown("<div class='chat-container' id='chat'>", unsafe_allow_html=True)
+            reply = response.choices[0].message.content.strip()
 
+            if reply == st.session_state.last_bot_reply:
+                reply += "\n\nI’m here with you."
+
+            return reply
+
+        except Exception:
+            pass
+
+    return local_support_response(user_input, emotion)
+
+# ================== CHAT DISPLAY ==================
 for role, msg in st.session_state.chat_history:
     if role == "user":
-        st.markdown(
-            f"<div class='user-bubble'>🧑 <b>You</b><br>{msg}</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<div class='user-bubble'>🧑 You<br>{msg}</div>", unsafe_allow_html=True)
     else:
-        st.markdown(
-            f"<div class='bot-bubble'>🤖 <b>ManoSakhi</b><br>{msg}</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<div class='bot-bubble'>🤖 ManoSakhi<br>{msg}</div>", unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
-
-# ------------------ AUTO SCROLL ------------------
-st.markdown(
-    """
-    <script>
-    const chat = document.getElementById("chat");
-    if (chat) {
-        chat.scrollTop = chat.scrollHeight;
-    }
-    </script>
-    """,
-    unsafe_allow_html=True
-)
-
-# ------------------ INPUT (BOTTOM) ------------------
-st.markdown("---")
-
-user_input = st.text_input(
-    "✍️ Type your thoughts here (English only)",
-    placeholder="Example: I feel sad today..."
-)
-
+# ================== INPUT ==================
+user_input = st.text_input("✍️ Type your thoughts here (English only)")
 send = st.button("Send ✉️")
 
 if send and user_input.strip():
     reply = chat_with_ai(user_input)
+
     st.session_state.chat_history.append(("user", user_input))
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.last_bot_reply = reply
+
     st.rerun()
